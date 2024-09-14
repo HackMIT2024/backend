@@ -1,5 +1,4 @@
 #1. convert image into text
-#2. Convert to text
 #3. Get first message that needs to be sent to the emer services
 #4. based on what the emer services need, go back and forth to the llm to get nextResponses using fetch ai agent
 
@@ -17,7 +16,7 @@ load_dotenv()
 
 app = FastAPI()
 
-async def convert_image_to_text(image: UploadFile):
+async def convert_image_to_text(imageUrl: str):
     import json
     import requests
 
@@ -38,7 +37,7 @@ async def convert_image_to_text(image: UploadFile):
                     {
                         "type": "image_url",
                         "image_url": {
-                            "url": "https://media.npr.org/assets/img/2021/06/08/20210607_184450-9a390e08a9eb33dc4518dcafaa64f9d17f9d3096.jpg?s=1100&c=85&f=webp",
+                            "url": imageUrl,
                         },
                     },
                 ],
@@ -65,16 +64,17 @@ async def convert_image_to_text(image: UploadFile):
 # Main FastAPI Endpoint
 @app.post("/emergency")
 async def emergency_endpoint(
-    image: Optional[UploadFile] = File(None),
+    imageUrl: str = Form(...),
     audio: str = Form (...),
     healthData: str = Form(...),
     location: str = Form(...),
-    user_phone: str = Form(...)
+    userPhone: str = Form(...)
 ):
     # Your function logic here
     # if image is uploaded, convert to text
-    if image is not None:
-        image_text = await convert_image_to_text(image)
-        print(image_text)
+    if imageUrl is not None:
+        image_text = await convert_image_to_text(imageUrl)
+        print(f"Image Text: {image_text}")
     # get first response from llm
+    
     return {"status": "Emergency services contacted"}
