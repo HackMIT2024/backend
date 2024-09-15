@@ -1,80 +1,73 @@
-#1. convert image into text
-#3. Get first message that needs to be sent to the emer services
-#4. based on what the emer services need, go back and forth to the llm to get nextResponses using fetch ai agent
-
-
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form
 from pydantic import BaseModel
 from typing import Optional
-import twilio
-from twilio.rest import Client
-import requests
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
+import shutil
+from pathlib import Path
+from ImageToText import ImageToText
+from helper import eventDesciptor, sendEmergencyMsg
+import uuid
+from pymongo import MongoClient
+from bson import ObjectId
 
 app = FastAPI()
 
-async def convert_image_to_text(imageUrl: str):
-    import json
-    import requests
+# MongoDB connection setup
+client = MongoClient("mongodb+srv://jesicahackmit:jesica@cluster01.ik8tfsj.mongodb.net/?retryWrites=true&w=majority")
+db = client["quicksafe"]
+collection = db["emergencyData"]
 
-    stream = False
-    url = "https://proxy.tune.app/chat/completions"
-    headers = {
-        "Authorization": os.getenv("GROQ_MULTIMODAL"),
-        "Content-Type": "application/json",
-    }
-    data = {
-    "temperature": 0.8,
-        "messages":  [
-    {
-        "role": "system",
-        "content": "Describe this emergency situation image.",
-        "role": "user",
-                "content": [
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": imageUrl,
-                        },
-                    },
-                ],
-    }
-    ],
-        "model": "nikhildhoka8/groq-multimodal",
-        "stream": stream,
-        "frequency_penalty":  0,
-        "max_tokens": 900
-    }
-    response = requests.post(url, headers=headers, json=data)
-    if stream:
-        for line in response.iter_lines():
-            if line:
-                l = line[6:]
-                if l != b'[DONE]':
-                    print(json.loads(l))
-    else:
-        print(response.json()["choices"][0]["message"]["content"])
+class UserData(BaseModel):
+    id: str
+    eventDescription: str
+    healthData: str
+    location: str
+    userPhone: str
 
-    return response.json()["choices"][0]["message"]["content"]
-  
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "eventDescription": self.eventDescription,
+            "healthData": self.healthData,
+            "location": self.location,
+            "userPhone": self.userPhone
+        }
 
-# Main FastAPI Endpoint
 @app.post("/emergency")
 async def emergency_endpoint(
-    imageUrl: str = Form(...),
-    audio: str = Form (...),
+    image: Optional[UploadFile] = File(None),
+    audio: str = Form(...),
     healthData: str = Form(...),
     location: str = Form(...),
     userPhone: str = Form(...)
 ):
-    # Your function logic here
-    # if image is uploaded, convert to text
-    if imageUrl is not None:
-        image_text = await convert_image_to_text(imageUrl)
-        print(f"Image Text: {image_text}")
-    # get first response from llm
-    
-    return {"status": "Emergency services contacted"}
+    if image is not None:
+        # Save the image to the /tmp directory and get the path of the image
+        tmp_dir = Path("/tmp")
+        tmp_dir.mkdir(parents=True, exist_ok=True)  # Ensure the /tmp directory exists
+        
+        # Save the uploaded image to the /tmp directory with its original filename
+        image_path = tmp_dir / image.filename
+        with open(image_path, "wb") as buffer:
+            shutil.copyfileobj(image.file, buffer)
+        
+        # Pass the image path to the ImageToText object
+        imgToTextObj = ImageToText(str(image_path))  # Convert Path to string
+        image_text = await imgToTextObj.convert_image_to_text()
+
+        # Call the eventDescriptor function
+        eventDescription = eventDesciptor(audio, healthData, location, userPhone, image_text)
+        
+        #send message to emergency services
+        sendEmergencyMsg(eventDescription)
+        # Create the Pydantic class and save it to MongoDB
+        incidentId = str(uuid.uuid4())
+        user_data = UserData(
+            id=incidentId,
+            eventDescription=eventDescription,
+            healthData=healthData,
+            location=location,
+            userPhone=userPhone
+        )
+        collection.insert_one(user_data.to_dict())
+        
+    return {"id": incidentId}
