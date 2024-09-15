@@ -47,10 +47,10 @@ async def startup(ctx: Context):
 
 
 @agent.on_query(model=TestRequest, replies={Response})
-async def query_handler(ctx: Context, sender: str, _query: TestRequest):
+async def query_handler(ctx: Context, sender: str, query: TestRequest):
     #print the message
-    ctx.logger.info(_query.message)
-    sendEmergencyMsg(_query.message)
+    ctx.logger.info(query.message)
+    sendEmergencyMsg(query.message)
     await ctx.send(sender, Response(text="success"))
 
 
