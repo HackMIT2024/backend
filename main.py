@@ -4,7 +4,7 @@ from typing import Optional
 import shutil
 from pathlib import Path
 from ImageToText import ImageToText
-from helper import eventDesciptor, sendEmergencyMsg
+from helper import eventDesciptor, sendEmergencyMsg, getUpdatedHealthDataMsg
 import uuid
 from pymongo import MongoClient
 from bson import ObjectId
@@ -71,3 +71,20 @@ async def emergency_endpoint(
         collection.insert_one(user_data.to_dict())
         
     return {"id": incidentId}
+
+@app.post("/healthdata/{id}")
+async def get_healthdata(id: str, updatedHealthData: str = Form(...), updatedLocation: str = Form(...)):
+    previousHealthData = collection.find_one({"id": id})["healthData"]
+    previousLocation = collection.find_one({"id": id})["location"]
+    collection.update_one({"id": id}, {"$set": {"healthData": updatedHealthData}})
+    collection.update_one({"id": id}, {"$set": {"location": updatedLocation}})
+    #get event description for the id
+    eventDescription = collection.find_one({"id": id})["eventDescription"]
+    updatedHealthDataMsg = getUpdatedHealthDataMsg(eventDescription, previousHealthData, updatedHealthData, previousLocation, updatedLocation)
+    print("updatedHealthDataMsg!!!: ", updatedHealthDataMsg)
+    if updatedHealthDataMsg.lower() != "no change":
+        print("Sent Updated Message")
+        sendEmergencyMsg(updatedHealthDataMsg)
+    else:
+        print("Did not send message")
+    return {"message": "Health Data Updated Successfully"}

@@ -55,3 +55,41 @@ def sendEmergencyMsg(message: str):
     )
     sms_sid = message.sid
     print(f"Message sent with SID: {sms_sid}")
+
+
+
+
+def getUpdatedHealthDataMsg(eventDescription: str, previousHealthData: str, updatedHealthData: str, previousLocation: str, updatedLocation: str):
+    import json
+    import requests
+
+    stream = False
+    url = "https://proxy.tune.app/chat/completions"
+    headers = {
+        "Authorization": "sk-tune-oWo6z7fh4BXVi3lgFdNqABen3ewrw6zrpt2",
+        "Content-Type": "application/json",
+    }
+    data = {
+    "temperature": 0.8,
+        "messages":  [
+    {
+        "role": "user",
+        "content": f"Here is the previous message that was sent to the emergency service, I want you to develop a new message that could be sent to the healthcare services based on the users updated health data. For example, if their location has changed, then indicate that in the new message that will be generated. Additionally, if there is a change in any of their health stats such as the heart beat, notify that as well. Please only highlight things that have changed and do not repeat the summary again.Respond in plain text in 2-3 lines of only stats or location that has changed. If there is no change, resopond with 'No change'\n\n\nEventDescription:\n{eventDescription}\n\n Previous Health Data:\n{previousHealthData}\n\n UpdatedHealth Data:\n{updatedHealthData}"
+    }
+    ],
+        "model": "rohan/tune-gpt-4o",
+        "stream": stream,
+        "frequency_penalty":  0,
+        "max_tokens": 900
+    }
+    response = requests.post(url, headers=headers, json=data)
+    if stream:
+        for line in response.iter_lines():
+            if line:
+                l = line[6:]
+                if l != b'[DONE]':
+                    print(json.loads(l))
+    else:
+        print(response.json()["choices"][0]["message"]["content"])
+
+    return response.json()["choices"][0]["message"]["content"]
