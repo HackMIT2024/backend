@@ -37,24 +37,7 @@ def eventDesciptor(audioDescription: str, healthData: str, streetName: str, user
     return response.json()["choices"][0]["message"]["content"]
 
 
-def sendEmergencyMsg(message: str):
-    from twilio.rest import Client
 
-    # Your Account SID and Auth Token from Twilio Console
-    account_sid = os.getenv("TWILIO_ACCOUNT_SID")
-    auth_token = os.getenv("TWILIO_AUTH_TOKEN")
-
-    # Initialize the client
-    client = Client(account_sid, auth_token)
-
-    # Send SMS
-    message = client.messages.create(
-        body=message,  # The content of the SMS
-        from_='+18777161342',  # Your Twilio number
-        to='+16462296260'  # The recipient's phone number
-    )
-    sms_sid = message.sid
-    print(f"Message sent with SID: {sms_sid}")
 
 
 
