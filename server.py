@@ -63,6 +63,12 @@ async def emergency_endpoint(
     location: str = Form(...),
     userPhone: str = Form(...)
 ):
+    
+    print ("audio: ", audio)
+    print ("healthData: ", healthData)
+    print ("location: ", location)
+    print ("userPhone: ", userPhone)
+    print ("image: ", image.filename)
     if image is not None:
         # Save the image to the /tmp directory and get the path of the image
         tmp_dir = Path("/tmp")

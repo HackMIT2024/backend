@@ -20,7 +20,7 @@ def eventDesciptor(audioDescription: str, healthData: str, streetName: str, user
         "content": f"You are a specialist in describing this emergency service on behalf of the user so that this message can be forwarded to emergency responders. Based on the users data such as the image of their situation, their voice audio describing their situation, their health data, their location, and their phone number, generate a description on behalf of the user from the user's viewpoint.\n\n\nEmergency Image Description:\n{imageDescription}\n\nAudio Transcription:\n{audioDescription}\n\nLocation: \n{streetName}\n\nPhone Number: {userPhone}\n\nHealthData: \{healthData}\n\n\n"
     }
     ],
-        "model": "nikhildhoka8/groq-multimodal",
+        "model": "nikhildhoka8/groq-text",
         "stream": stream,
         "frequency_penalty":  0,
         "max_tokens": 900
